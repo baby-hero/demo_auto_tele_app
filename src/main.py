@@ -1,11 +1,13 @@
 import time
 from datetime import datetime
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 import uiautomator2 as u2
 from adbutils._device import AdbDevice, WindowSize
 from uiautomator2 import Device
 
+from services.blum_service import BlumService
+from services.hamster_kombat_service import HamsterKombatService
 from src import configs
 from src.services.bnb_moonbix_service import BnbMoonBixService
 from src.services.side_fans_service import SideFansService
@@ -14,17 +16,41 @@ from src.utils.log_util import logger
 
 
 def run_main():
-    waiting_times_minus = 38
     old_device_to_balance_dict = {}
-    run_device_list: List[Tuple[Device, WindowSize, str]] = get_device_list()
-    # daily tasks
-    for item in run_device_list:
-        side_fans_daily_checkin(item)
+    while True:
+        run_device_list: List[Tuple[Device, WindowSize, str]] = get_device_list()
+        moonbix_servies = get_bnb_moonbix_services(run_device_list)
+        sidefans_services = get_sidefans_services(run_device_list)
+        blum_services = get_blum_services(run_device_list)
+        hamster_kombat_services = get_hamster_kombat_services(run_device_list)
+        # daily tasks
+        run_every_day(
+            sidefans_services,
+            blum_services,
+            moonbix_servies,
+            hamster_kombat_services,
+            old_device_to_balance_dict,
+        )
 
-    moonbix_servies = get_bnb_moonbix_services(run_device_list)
+
+def run_every_day(
+    sidefans_services: List[SideFansService],
+    blum_services: List[BlumService],
+    moonbix_servies: List[BnbMoonBixService],
+    hamster_kombat_services: List[HamsterKombatService],
+    old_device_to_balance_dict: Dict,
+    waiting_times_minus: int = 70,
+):
+    start_time = datetime.now()
+    for i in range(len(sidefans_services)):
+        sidefans_services[i].run_app()
+        blum_services[i].run_app()
+        hamster_kombat_services[i].run_app()
+        hamster_kombat_services[i].close_tele_app()
+
     while True:
         try:
-            device_to_balance_dict = {}
+            device_to_balance_dict: Dict[str, int] = {}
             for item in moonbix_servies:
                 item.run_app(device_to_balance_dict)
                 item.close_tele_app()
@@ -56,15 +82,10 @@ def run_main():
                 f"in ignore_run: {configs.IGNORE_HOUR_RUN_LIST}"
             )
             time.sleep(3600)
-
-
-def side_fans_daily_checkin(item) -> bool:
-    try:
-        side_fans_service = SideFansService(item[0], item[2])
-        return side_fans_service.run_app()
-    except Exception as e:
-        logger.error("daily tasks", e)
-    return False
+        if (datetime.now() - start_time).seconds >= 8 * 3600:
+            notify_util.send_telegram_log("Stop function and rerun again.")
+            logger.info("Stop run_every_day and rerun again.")
+            return
 
 
 def get_device_list() -> List[Tuple[Device, WindowSize, str]]:
@@ -84,6 +105,36 @@ def get_bnb_moonbix_services(
     result: List[BnbMoonBixService] = []
     for (device_ui, device_size, serial_no) in device_list:
         item = BnbMoonBixService(device_ui, serial_no, device_size)
+        result.append(item)
+    return result
+
+
+def get_sidefans_services(
+    device_list: List[Tuple[Device, WindowSize, str]]
+) -> List[SideFansService]:
+    result = []
+    for (device_ui, _, serial_no) in device_list:
+        item = SideFansService(device_ui, serial_no)
+        result.append(item)
+    return result
+
+
+def get_blum_services(
+    device_list: List[Tuple[Device, WindowSize, str]]
+) -> List[BlumService]:
+    result = []
+    for (device_ui, _, serial_no) in device_list:
+        item = BlumService(device_ui, serial_no)
+        result.append(item)
+    return result
+
+
+def get_hamster_kombat_services(
+    device_list: List[Tuple[Device, WindowSize, str]]
+) -> List[HamsterKombatService]:
+    result = []
+    for (device_ui, _, serial_no) in device_list:
+        item = HamsterKombatService(device_ui, serial_no)
         result.append(item)
     return result
 

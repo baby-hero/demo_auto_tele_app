@@ -3,6 +3,8 @@
 ## Features
 - SideFans: Daily check in
 - MoonBix: Daily check in, Game automation
+- Blum: Daily check in, farming
+- HamsterKombat: Earn (Daily), Background (Buy new cards and upgrade cards)
 
 ## Prerequisites
 - Python 3.9+
