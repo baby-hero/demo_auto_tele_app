@@ -20,6 +20,14 @@ class BnbMoonBixService(BaseTeleGroupService):
         """Find group index in tele app start_index from 0"""
         return 0
 
+    def _waiting_bot_menu_loaded(self) -> bool:
+        logger.info(f"[{self.serial_no}] Waiting for bot menu loaded")
+        self.device_ui(
+            text="Leaderboard",
+            packageName=self.package_name,
+        ).wait(timeout=self.bot_menu_timeout)
+        return True
+
     def daily_check_in(self) -> bool:
         logger.info(f"[{self.serial_no}] Daily check-in started...")
         node = self.device_ui(text="Your Daily Record", packageName=self.package_name)
@@ -45,13 +53,57 @@ class BnbMoonBixService(BaseTeleGroupService):
             logger.error(f"[{self.serial_no}] Error running app {self.app_name}:", e)
             return False
 
+    def _take_screenshot_to_check(self):
+        try:
+            time_ts = int(datetime.now().timestamp())
+            node = (
+                self.device_ui(
+                    text="Security Verification",
+                    packageName=self.package_name,
+                )
+                .sibling(index=2)
+                .child(index=0)
+            )
+            img = node.screenshot()
+            img.save(f"images/image_{time_ts}.png")
+
+            img = node.child(index=0).screenshot()
+            img.save(f"images/compare_{time_ts}.png")
+        except Exception as e:
+            logger.error(f"[{self.serial_no}] Take screenshot failed", e)
+
+    def _validate_security(self):
+        if self.device_ui(
+            text="Security Verification",
+            packageName=self.package_name,
+        ).exists(10):
+            self._notify_to_tele("Wait for start game failed, Maybe have error")
+            # logger.info("Take screenshot")
+            # self._take_screenshot_to_check()
+            # logger.info("Take screenshot finished")
+
     def _auto_click_to_play(
         self,
-        play_round_time_s: int = 50,
-        waiting_start_game: int = 3,
+        play_round_time_s: int = 45,
+        waiting_start_game: int = 10,
     ):
-        time.sleep(waiting_start_game)
+        result = self.device_ui(
+            text="icon-timer",
+            packageName=self.package_name,
+        ).wait(timeout=waiting_start_game)
+        if not result:
+            logger.error(f"[{self.serial_no}] Wait for start game failed")
+            self._validate_security()
+            if not self.device_ui(
+                text="icon-timer",
+                packageName=self.package_name,
+            ).wait(timeout=120):
+                logger.error(f"[{self.serial_no}] Wait for start game failed")
+                self.close_tele_app()
+                return False
+
         logger.info(f"[{self.serial_no}] Starting click in game...")
+
         start_ts = datetime.now()
         count = 0
 
@@ -63,6 +115,7 @@ class BnbMoonBixService(BaseTeleGroupService):
             count += 1
             time.sleep(common_util.random_float_in_range())
             if (datetime.now() - start_ts).seconds > play_round_time_s:
+                time.sleep(3)
                 break
         logger.info(f"[{self.serial_no}] Game ended: clicked {count} times.")
 
@@ -107,20 +160,22 @@ class BnbMoonBixService(BaseTeleGroupService):
         logger.info(f"[{self.serial_no}] Run game")
         self.device_to_balance_dict: dict = device_to_balance_dict
         played_flag = False
+        retry = 3
+        count = 0
         while True:
             is_running_game_flag = False
-
+            count += 1
             if self._check_and_click_by_btn_name(
                 "Play Game",
             ):
                 is_running_game_flag = True
                 self._auto_click_to_play()
-            else:
+
                 while self._check_and_click_by_btn_name(
                     "Play Again (🚀 Left",
                 ):
-                    is_running_game_flag = True
                     self._auto_click_to_play()
+
                 self._check_and_click_by_btn_name(
                     "Continue",
                 )
@@ -132,5 +187,10 @@ class BnbMoonBixService(BaseTeleGroupService):
                 break
             else:
                 played_flag = True
+            if count > retry:
+                self._notify_to_tele(
+                    f"[{self.serial_no}] Play game retry 3 times. Stopping"
+                )
+                break
         logger.info(f"[{self.serial_no}] Finished game: {played_flag} flag")
         return played_flag

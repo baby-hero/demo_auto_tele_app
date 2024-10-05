@@ -153,3 +153,4 @@ spark/output/
 spark/.bsp/
 *.ipynb
 logs/
+images/

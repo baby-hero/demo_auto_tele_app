@@ -2,6 +2,7 @@ import time
 
 from uiautomator2 import Device
 
+from src.utils import notify_util
 from src.utils.log_util import logger
 
 
@@ -20,7 +21,7 @@ class BaseTeleService:
             description="Open navigation menu",
             clickable=True,
             packageName=self.package_name,
-        ).exists(20)
+        ).exists(10)
 
     def _open_tele_app(self) -> bool:
         current_page = self._get_current_package_name()
@@ -40,8 +41,10 @@ class BaseTeleService:
     def close_tele_app(self) -> bool:
         current_page = self._get_current_package_name()
         if current_page == self.package_name:
-            self.device_ui.press("recent")
-            self.device_ui.swipe_ext("up", scale=0.9, duration=0.025)
+            self.device_ui.press(
+                "recent",
+            )
+            self.device_ui.swipe_ext("up", duration=0.015)
             logger.info(f"[{self.serial_no}] Close {self.app_name} successfully")
             self.device_ui.press("home")
             current_page = self._get_current_package_name()
@@ -79,11 +82,15 @@ class BaseTeleService:
         self.device_ui.press("back")
         return True
 
+    def _notify_to_tele(self, msg):
+        notify_util.send_telegram_log(msg)
+
 
 class BaseTeleGroupService(BaseTeleService):
     def __init__(self, device_ui: Device, serial_no: str):
         super().__init__(device_ui, serial_no)
         self.group_name = "Telegram"
+        self.bot_menu_timeout = 30
 
     def _open_bot_menu(self) -> bool:
         result = self.device_ui(description="Bot menu").click_exists(10)
@@ -91,6 +98,8 @@ class BaseTeleGroupService(BaseTeleService):
             logger.info(
                 f"[{self.serial_no}] Open bot page {self.group_name} successfully"
             )
+            # wait for loading finished
+            self._waiting_bot_menu_loaded()
         else:
             logger.error(f"[{self.serial_no}] Open bot page {self.group_name} failed")
         return result
@@ -164,8 +173,17 @@ class BaseTeleGroupService(BaseTeleService):
             logger.error(f"[{self.serial_no}] Close bot page {self.group_name} failed")
             return False
 
+    def _waiting_bot_menu_loaded(self) -> bool:
+        logger.info(
+            f"[{self.serial_no}] Waiting for bot menu loaded"
+            f" in {self.bot_menu_timeout}s..."
+        )
+        time.sleep(self.bot_menu_timeout)
+
     def get_group_index(self) -> int:
-        raise NotImplementedError(f"[{self.serial_no}] Subclasses must implement this method")
+        raise NotImplementedError(
+            f"[{self.serial_no}] Subclasses must implement this method"
+        )
 
     def run_app(self) -> bool:
         raise NotImplementedError(

@@ -6,6 +6,7 @@ from src.utils.log_util import logger
 
 def send_telegram_log(message):
     try:
+        logger.info(f"Send Telegram log: {message}")
         if TELE_BOT_TOKEN and TELE_BOT_GROUP_ID:
             requests.get(
                 f"https://api.telegram.org/bot{TELE_BOT_TOKEN}/"
