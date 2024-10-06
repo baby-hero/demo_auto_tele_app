@@ -9,11 +9,13 @@ from src.utils.log_util import logger
 
 
 class BnbMoonBixService(BaseTeleGroupService):
-    def __init__(self, device_ui: Device, serial_no: str, device_size) -> None:
-        super().__init__(device_ui, serial_no)
+    def __init__(
+        self, device_ui: Device, serial_no: str, device_size, general_configs: dict
+    ) -> None:
+        super().__init__(device_ui, serial_no, general_configs)
         self.device_size = device_size
         self.group_name = "Binance Moonbix bot"
-        self.group_index = 1
+        self.waiting_next_run_interval = 1 * 60 * 60
         logger.info(f"[{self.serial_no}] Init {self.group_name} in {self.app_name}")
 
     def get_group_index(self) -> int:
@@ -42,12 +44,16 @@ class BnbMoonBixService(BaseTeleGroupService):
 
     def run_app(self, device_to_balance_dict: dict) -> bool:
         try:
+            if not self._check_run_app():
+                logger.info(f"[{self.serial_no}] Ignore running app {self.group_name}")
+                return False
             if not self.start_group():
                 return False
             self.daily_check_in()
 
             self.run_game_on_device(device_to_balance_dict)
 
+            self._set_pre_run_at()
             return self.end_group()
         except Exception as e:
             logger.error(f"[{self.serial_no}] Error running app {self.app_name}:", e)

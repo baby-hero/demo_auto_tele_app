@@ -6,10 +6,9 @@ from adbutils._device import AdbDevice, WindowSize
 from src.configs import ADB_HOST, ADB_PORT
 from src.utils.common_util import random_int
 
-adb: AdbClient = AdbClient(host=ADB_HOST, port=ADB_PORT)
-
 
 def get_devices() -> List[AdbDevice]:
+    adb: AdbClient = AdbClient(host=ADB_HOST, port=ADB_PORT)
     devices = adb.device_list()
     return devices
 

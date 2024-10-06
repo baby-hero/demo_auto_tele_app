@@ -7,9 +7,12 @@ from src.utils.log_util import logger
 
 
 class BlumService(BaseTeleGroupService):
-    def __init__(self, device_ui: Device, serial_no: str) -> None:
-        super().__init__(device_ui, serial_no)
+    def __init__(
+        self, device_ui: Device, serial_no: str, general_configs: dict
+    ) -> None:
+        super().__init__(device_ui, serial_no, general_configs)
         self.group_name = "Blum"
+        self.waiting_next_run_interval = 8 * 60 * 60
         logger.info(f"[{self.serial_no}] Init {self.group_name} in {self.app_name}")
 
     def get_group_index(self) -> int:
@@ -18,10 +21,14 @@ class BlumService(BaseTeleGroupService):
 
     def run_app(self) -> bool:
         try:
+            if not self._check_run_app():
+                logger.info(f"[{self.serial_no}] Ignore running app {self.group_name}")
+                return False
             if not self.start_group():
                 return False
             self._claim_daily_rewards()
             self._farming_rewards()
+            self._set_pre_run_at()
             return self.end_group()
         except Exception as e:
             logger.error(f"[{self.serial_no}] Error running app {self.app_name}:", e)

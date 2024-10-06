@@ -48,7 +48,7 @@ class BaseTeleService:
             logger.info(f"[{self.serial_no}] Close {self.app_name} successfully")
             self.device_ui.press("home")
             current_page = self._get_current_package_name()
-        return current_page == self.package_name
+        return current_page != self.package_name
 
     def back_to_app_home_screen(self) -> bool:
         count_back = 0
@@ -87,10 +87,25 @@ class BaseTeleService:
 
 
 class BaseTeleGroupService(BaseTeleService):
-    def __init__(self, device_ui: Device, serial_no: str):
+    def __init__(self, device_ui: Device, serial_no: str, general_configs: dict):
         super().__init__(device_ui, serial_no)
         self.group_name = "Telegram"
         self.bot_menu_timeout = 30
+        self.waiting_next_run_interval: int = 3600
+        self.general_configs: dict = general_configs
+
+    def _get_pre_run_at(self) -> int:
+        return self.general_configs.get(self.group_name, {}).get("pre_run_at", 0)
+
+    def _set_pre_run_at(self) -> bool:
+        current_time = int(time.time())
+        self.general_configs[self.group_name]["pre_run_at"] = current_time
+        return True
+
+    def _check_run_app(self) -> bool:
+        current_time = int(time.time())
+        pre_run_at = self._get_pre_run_at()
+        return (current_time - pre_run_at) >= self.waiting_next_run_interval
 
     def _open_bot_menu(self) -> bool:
         result = self.device_ui(description="Bot menu").click_exists(10)
@@ -98,6 +113,11 @@ class BaseTeleGroupService(BaseTeleService):
             logger.info(
                 f"[{self.serial_no}] Open bot page {self.group_name} successfully"
             )
+            self.device_ui(
+                text="Start",
+                clickable=True,
+                packageName=self.package_name,
+            ).click_exists(5)
             # wait for loading finished
             self._waiting_bot_menu_loaded()
         else:

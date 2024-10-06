@@ -7,9 +7,12 @@ from src.utils.log_util import logger
 
 
 class SideFansService(BaseTeleGroupService):
-    def __init__(self, device_ui: Device, serial_no: str) -> None:
-        super().__init__(device_ui, serial_no)
+    def __init__(
+        self, device_ui: Device, serial_no: str, general_configs: dict
+    ) -> None:
+        super().__init__(device_ui, serial_no, general_configs)
         self.group_name = "SideFans (By SideKick)"
+        self.waiting_next_run_interval = 12 * 60 * 60
         logger.info(f"[{self.serial_no}] Init {self.group_name} in {self.app_name}")
 
     def get_group_index(self) -> int:
@@ -41,6 +44,9 @@ class SideFansService(BaseTeleGroupService):
 
     def run_app(self) -> bool:
         try:
+            if not self._check_run_app():
+                logger.info(f"[{self.serial_no}] Ignore running app {self.group_name}")
+                return False
             if not self.start_group():
                 return False
             # TODO: check loading status
@@ -50,6 +56,7 @@ class SideFansService(BaseTeleGroupService):
                 return False
             else:
                 logger.info(f"[{self.serial_no}] handle pass tap successfully")
+            self._set_pre_run_at()
             return self.end_group()
         except Exception as e:
             logger.error(f"[{self.serial_no}] Error running app {self.app_name}:", e)

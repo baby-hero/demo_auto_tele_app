@@ -17,75 +17,74 @@ from src.utils.log_util import logger
 
 def run_main():
     old_device_to_balance_dict = {}
+    general_configs: dict = {}
+    waiting_times_seconds = 3600
     while True:
-        run_device_list: List[Tuple[Device, WindowSize, str]] = get_device_list()
-        moonbix_servies = get_bnb_moonbix_services(run_device_list)
-        sidefans_services = get_sidefans_services(run_device_list)
-        blum_services = get_blum_services(run_device_list)
-        hamster_kombat_services = get_hamster_kombat_services(run_device_list)
         # daily tasks
+        start_time = datetime.now()
         run_every_day(
-            sidefans_services,
-            blum_services,
-            moonbix_servies,
-            hamster_kombat_services,
+            general_configs,
             old_device_to_balance_dict,
         )
+        duration_seconds = (datetime.now() - start_time).seconds
+        if duration_seconds < waiting_times_seconds:
+            sleep_times = waiting_times_seconds - duration_seconds
+            logger.info(f"Waiting for {sleep_times} minutes...")
+            time.sleep(sleep_times)
 
-
-def run_every_day(
-    sidefans_services: List[SideFansService],
-    blum_services: List[BlumService],
-    moonbix_servies: List[BnbMoonBixService],
-    hamster_kombat_services: List[HamsterKombatService],
-    old_device_to_balance_dict: Dict,
-    waiting_times_minus: int = 70,
-):
-    start_time = datetime.now()
-    for i in range(len(sidefans_services)):
-        sidefans_services[i].run_app()
-        blum_services[i].run_app()
-        hamster_kombat_services[i].run_app()
-        hamster_kombat_services[i].close_tele_app()
-
-    while True:
-        try:
-            device_to_balance_dict: Dict[str, int] = {}
-            for item in moonbix_servies:
-                item.run_app(device_to_balance_dict)
-                item.close_tele_app()
-
-            # notify telegram
-            msgs = []
-            for device, balances in device_to_balance_dict.items():
-                old_balances = old_device_to_balance_dict.get(device, 0)
-                if old_balances != balances:
-                    msgs.append(
-                        f"Device: {device[10:]}: {balances} "
-                        f"({balances - old_balances}) points\n"
-                    )
-                    old_device_to_balance_dict[device] = balances
-            if msgs:
-                notify_util.send_telegram_log("".join(msgs))
-        except Exception as e:
-            logger.error("error", e)
-            notify_util.send_telegram_log(f"have error: {str(e)}")
-
-        random_sleep_minus = common_util.random_int(2, 5)
+        random_sleep_minus = common_util.random_int(1, 5)
         logger.info(f"Waiting for random in {random_sleep_minus} minutes...")
         time.sleep(random_sleep_minus * 60)
-        logger.info(f"Waiting for {waiting_times_minus} minutes...")
-        time.sleep(waiting_times_minus * 60)
+
         while datetime.now().hour in configs.IGNORE_HOUR_RUN_LIST:
             logger.info(
                 "Waiting for 1 HOUR, because current_hour "
                 f"in ignore_run: {configs.IGNORE_HOUR_RUN_LIST}"
             )
             time.sleep(3600)
-        if (datetime.now() - start_time).seconds >= 8 * 3600:
-            notify_util.send_telegram_log("Stop function and rerun again.")
-            logger.info("Stop run_every_day and rerun again.")
-            return
+
+
+def run_every_day(
+    general_configs: dict,
+    old_device_to_balance_dict: Dict,
+):
+    logger.info("Start all devices")
+    run_device_list: List[Tuple[Device, WindowSize, str]] = get_device_list()
+
+    device_to_balance_dict: Dict[str, int] = {}
+    for (device_ui, device_size, serial_no) in run_device_list:
+        logger.info(f"[{serial_no}] START on device")
+        logger.info("================================================================")
+        moonbix_servie = BnbMoonBixService(
+            device_ui, serial_no, device_size, general_configs
+        )
+        moonbix_servie.run_app(device_to_balance_dict)
+
+        sidefans_service = SideFansService(device_ui, serial_no, general_configs)
+        sidefans_service.run_app()
+
+        blum_service = BlumService(device_ui, serial_no)
+        blum_service.run_app()
+
+        hamster_kombat_service = HamsterKombatService(device_ui, serial_no)
+        hamster_kombat_service.run_app()
+        hamster_kombat_service.device_ui.app_stop_all()
+        hamster_kombat_service.close_tele_app()
+        logger.info(f"[{serial_no}] FINISH on device")
+        logger.info("================================================================")
+
+    msgs = []
+    for device, balances in device_to_balance_dict.items():
+        old_balances = old_device_to_balance_dict.get(device, 0)
+        if old_balances != balances:
+            msgs.append(
+                f"Device: {device[10:]}: {balances} "
+                f"({balances - old_balances}) points\n"
+            )
+            old_device_to_balance_dict[device] = balances
+    if msgs:
+        notify_util.send_telegram_log("".join(msgs))
+    logger.info("All devices checked and updated")
 
 
 def get_device_list() -> List[Tuple[Device, WindowSize, str]]:
@@ -96,46 +95,6 @@ def get_device_list() -> List[Tuple[Device, WindowSize, str]]:
         device_size = device.window_size()
         device_ui: Device = u2.connect_usb(serial_no)
         result.append((device_ui, device_size, serial_no))
-    return result
-
-
-def get_bnb_moonbix_services(
-    device_list: List[Tuple[Device, WindowSize, str]]
-) -> List[BnbMoonBixService]:
-    result: List[BnbMoonBixService] = []
-    for (device_ui, device_size, serial_no) in device_list:
-        item = BnbMoonBixService(device_ui, serial_no, device_size)
-        result.append(item)
-    return result
-
-
-def get_sidefans_services(
-    device_list: List[Tuple[Device, WindowSize, str]]
-) -> List[SideFansService]:
-    result = []
-    for (device_ui, _, serial_no) in device_list:
-        item = SideFansService(device_ui, serial_no)
-        result.append(item)
-    return result
-
-
-def get_blum_services(
-    device_list: List[Tuple[Device, WindowSize, str]]
-) -> List[BlumService]:
-    result = []
-    for (device_ui, _, serial_no) in device_list:
-        item = BlumService(device_ui, serial_no)
-        result.append(item)
-    return result
-
-
-def get_hamster_kombat_services(
-    device_list: List[Tuple[Device, WindowSize, str]]
-) -> List[HamsterKombatService]:
-    result = []
-    for (device_ui, _, serial_no) in device_list:
-        item = HamsterKombatService(device_ui, serial_no)
-        result.append(item)
     return result
 
 
