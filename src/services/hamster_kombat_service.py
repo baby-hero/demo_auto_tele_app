@@ -2,6 +2,7 @@ import time
 
 from uiautomator2 import Device
 
+from src.configs import UI_TIMEOUT
 from src.services.tele_service import BaseTeleGroupService
 from src.utils.log_util import logger
 
@@ -50,7 +51,7 @@ class HamsterKombatService(BaseTeleGroupService):
             textStartsWith="Thank you, ",
             clickable=True,
             packageName=self.package_name,
-        ).click_exists(10)
+        ).click_exists(UI_TIMEOUT // 2)
         if result:
             logger.info(f"[{self.serial_no}] Claim daily rewards successfully")
         else:
@@ -63,7 +64,7 @@ class HamsterKombatService(BaseTeleGroupService):
             description="Earn",
             clickable=True,
             packageName=self.package_name,
-        ).click_exists(20)
+        ).click_exists(UI_TIMEOUT)
 
         if not earn_result:
             logger.error(f"[{self.serial_no}] Press Earn tasks failed")
@@ -82,7 +83,7 @@ class HamsterKombatService(BaseTeleGroupService):
                 packageName=self.package_name,
             )
             .sibling(index=task_index)
-            .click_exists(20)
+            .click_exists(UI_TIMEOUT)
         )
         if not task_click:
             logger.error(f"[{self.serial_no}] Not foud task index {task_index}")
@@ -96,7 +97,7 @@ class HamsterKombatService(BaseTeleGroupService):
             clickable=True,
             enabled=True,
             packageName=self.package_name,
-        ).click_exists(5)
+        ).click_exists(UI_TIMEOUT // 4)
         if not btn_check_result:
             logger.error(f"[{self.serial_no}] Press Check button not found")
         else:
@@ -107,7 +108,7 @@ class HamsterKombatService(BaseTeleGroupService):
             text="Check",
             enabled=False,
             packageName=self.package_name,
-        ).exists(10):
+        ).exists(UI_TIMEOUT // 2):
             self.back_to_a_screen()
             retry -= 1
             if retry == 0:
@@ -115,7 +116,7 @@ class HamsterKombatService(BaseTeleGroupService):
         if self.device_ui(
             text="Watch video",
             packageName=self.package_name,
-        ).exists(5):
+        ).exists(UI_TIMEOUT // 4):
             self.back_to_a_screen()
 
         logger.info(f"[{self.serial_no}] Finished task index {task_index}")
@@ -125,7 +126,7 @@ class HamsterKombatService(BaseTeleGroupService):
             description="Playground",
             clickable=True,
             packageName=self.package_name,
-        ).click_exists(10)
+        ).click_exists(UI_TIMEOUT // 2)
 
         if not background_result:
             logger.error(f"[{self.serial_no}] Press Background tasks failed")
@@ -137,7 +138,7 @@ class HamsterKombatService(BaseTeleGroupService):
             text="Mine cards",
             clickable=True,
             packageName=self.package_name,
-        ).click_exists(10)
+        ).click_exists(UI_TIMEOUT // 2)
 
         if not mine_cards:
             logger.error(f"[{self.serial_no}] Not foud Mine cards")
@@ -162,7 +163,7 @@ class HamsterKombatService(BaseTeleGroupService):
     def _check_and_buy_new_card(self) -> bool:
         switch_new_card_tab = self.device_ui(
             text="New cards", clickable=True, packageName=self.package_name
-        ).click_exists(10)
+        ).click_exists(UI_TIMEOUT // 2)
         if not switch_new_card_tab:
             logger.error(f"[{self.serial_no}] Press New cards tab failed")
             return False
@@ -170,25 +171,25 @@ class HamsterKombatService(BaseTeleGroupService):
 
         if self.device_ui(
             text="Profit per hour", packageName=self.package_name
-        ).click_exists(10):
+        ).click_exists(UI_TIMEOUT // 2):
             if self.device_ui(
                 text="Go ahead",
                 enabled=True,
                 clickable=True,
                 packageName=self.package_name,
-            ).click_exists(10):
+            ).click_exists(UI_TIMEOUT // 2):
                 logger.info(f"[{self.serial_no} Buy new card successful")
                 return True
 
             self.device_ui(
                 text="Mine cards", packageName=self.package_name
-            ).click_exists(5)
+            ).click_exists(UI_TIMEOUT // 4)
         return False
 
     def _check_and_buy_my_cards_tab(self):
         tab_result = self.device_ui(
             text="My cards", clickable=True, packageName=self.package_name
-        ).click_exists(10)
+        ).click_exists(UI_TIMEOUT // 2)
 
         if not tab_result:
             logger.error(f"[{self.serial_no}] Not foud  My cards Tab")
@@ -205,13 +206,14 @@ class HamsterKombatService(BaseTeleGroupService):
             description="Playground",
             packageName=self.package_name,
         ).bounds()[1]
+        logger.info(f"[{self.serial_no}] Start check and buy cards")
         self.check_and_buy_cards_of_current_page(
             top_limit=top_limit, bottom_limit=bottom_limit
         )
 
         scrollable_view = self.device_ui(scrollable=True, packageName=self.package_name)
         page_index = 1
-        if scrollable_view.exists():
+        if scrollable_view.exists(UI_TIMEOUT // 2):
             logger.info(
                 f"[{self.serial_no}] Start scroll to check and buy cards"
                 f" with number scroll: {scrollable_view.count}"
@@ -238,38 +240,49 @@ class HamsterKombatService(BaseTeleGroupService):
         top_limit: int = 0,
         bottom_limit: int = 5000,
     ):
-        numb_cards = self.device_ui(
-            text="Profit per hour",
-            packageName=self.package_name,
-        ).count
-        count = 0
-        for index in range(numb_cards):
-            card_bounds = self.device_ui(
-                text="Profit per hour",
-                instance=index,
-                packageName=self.package_name,
-            ).bounds()
+        if not self.device_ui(
+            text="Profit per hour", packageName=self.package_name
+        ).exists(UI_TIMEOUT):
+            logger.info(f"[{self.serial_no}] Not found cards in page {page_index}")
+            return False
+        bound_cards = []
+        for card in self.device_ui(
+            text="Profit per hour", packageName=self.package_name
+        ):
+            card_bounds = card.bounds()
             card_x = (card_bounds[0] + card_bounds[2]) // 2
             card_y = (card_bounds[1] + card_bounds[3]) // 2
+            logger.info(f"[{self.serial_no}] Found cards at ({card_x}, {card_y})")
+            bound_cards.append((card_x, card_y))
+        count = 0
+        logger.info(
+            f"[{self.serial_no}] Start check {len(bound_cards)} cards "
+            f"in page: {page_index}"
+        )
+        for (card_x, card_y) in bound_cards:
+            logger.info(
+                f"[{self.serial_no}] Check card ({card_x}, {card_y}) "
+                f"in page: {page_index}"
+            )
             if card_y > top_limit:
                 if card_y >= bottom_limit:
-                    card_y -= (card_y - bottom_limit) + 20
+                    card_y = card_y - ((card_y - bottom_limit) + 50)
                 self.device_ui.click(card_x, card_y)
                 if self.device_ui(
                     text="Go ahead",
                     enabled=True,
                     clickable=True,
                     packageName=self.package_name,
-                ).click_exists(5):
+                ).click_exists(UI_TIMEOUT // 4):
                     count += 1
                     logger.info(
                         f"[{self.serial_no} Update {count} card successful "
                         f"in page {page_index}"
                     )
                     time.sleep(3)
-
+            logger.info(f"[{self.serial_no} Back to main page")
             self.device_ui(
                 text="Mine cards", packageName=self.package_name
-            ).click_exists(5)
+            ).click_exists(UI_TIMEOUT // 4)
 
         logger.info(f"[{self.serial_no}] Finished buy cards in page: {page_index}")

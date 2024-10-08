@@ -16,7 +16,7 @@ file_handler.setLevel(LOG_LEVEL)
 
 # Set up root logger
 logging.root.setLevel(LOG_LEVEL)
-logger = logging.getLogger("pythonConfig")
+logger = logging.getLogger("uiautomator2")
 logger.setLevel(LOG_LEVEL)
 logger.addHandler(file_handler)
 # ---------------------------------------------#

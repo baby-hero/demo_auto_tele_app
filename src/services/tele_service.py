@@ -2,6 +2,7 @@ import time
 
 from uiautomator2 import Device
 
+from src.configs import UI_TIMEOUT
 from src.utils import notify_util
 from src.utils.log_util import logger
 
@@ -21,7 +22,7 @@ class BaseTeleService:
             description="Open navigation menu",
             clickable=True,
             packageName=self.package_name,
-        ).exists(10)
+        ).exists(UI_TIMEOUT // 2)
 
     def _open_tele_app(self) -> bool:
         current_page = self._get_current_package_name()
@@ -95,11 +96,15 @@ class BaseTeleGroupService(BaseTeleService):
         self.general_configs: dict = general_configs
 
     def _get_pre_run_at(self) -> int:
-        return self.general_configs.get(self.group_name, {}).get("pre_run_at", 0)
+        return self.general_configs.get(self.serial_no, {}).get(
+            f"{self.get_group_index()}_pre_run_at", 0
+        )
 
     def _set_pre_run_at(self) -> bool:
         current_time = int(time.time())
-        self.general_configs[self.group_name]["pre_run_at"] = current_time
+        group_config = self.general_configs.get(self.serial_no, {})
+        group_config[f"{self.get_group_index()}_pre_run_at"] = current_time
+        self.general_configs[self.serial_no] = group_config
         return True
 
     def _check_run_app(self) -> bool:
@@ -108,7 +113,7 @@ class BaseTeleGroupService(BaseTeleService):
         return (current_time - pre_run_at) >= self.waiting_next_run_interval
 
     def _open_bot_menu(self) -> bool:
-        result = self.device_ui(description="Bot menu").click_exists(10)
+        result = self.device_ui(description="Bot menu").click_exists(UI_TIMEOUT // 2)
         if result:
             logger.info(
                 f"[{self.serial_no}] Open bot page {self.group_name} successfully"
@@ -117,7 +122,7 @@ class BaseTeleGroupService(BaseTeleService):
                 text="Start",
                 clickable=True,
                 packageName=self.package_name,
-            ).click_exists(5)
+            ).click_exists(UI_TIMEOUT // 4)
             # wait for loading finished
             self._waiting_bot_menu_loaded()
         else:
@@ -128,7 +133,7 @@ class BaseTeleGroupService(BaseTeleService):
         return self.device_ui(
             text=self.group_name,
             packageName=self.package_name,
-        ).exists(20)
+        ).exists(UI_TIMEOUT)
 
     def _open_group_chat(self) -> bool:
         if not self.is_tele_home_screen():
@@ -143,7 +148,7 @@ class BaseTeleGroupService(BaseTeleService):
                 packageName=self.package_name,
             )
             .child(index=group_index)
-            .click_exists(20)
+            .click_exists(UI_TIMEOUT)
         )
         if btn_group_press:
             logger.info(
@@ -160,7 +165,7 @@ class BaseTeleGroupService(BaseTeleService):
                 packageName=self.package_name,
             )
             .sibling(index=0)
-            .click_exists(10)
+            .click_exists(UI_TIMEOUT // 2)
         )
         if result:
             logger.info(
@@ -199,6 +204,7 @@ class BaseTeleGroupService(BaseTeleService):
             f" in {self.bot_menu_timeout}s..."
         )
         time.sleep(self.bot_menu_timeout)
+        return True
 
     def get_group_index(self) -> int:
         raise NotImplementedError(

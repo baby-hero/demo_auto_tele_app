@@ -2,6 +2,7 @@ import time
 
 from uiautomator2 import Device
 
+from src.configs import UI_TIMEOUT
 from src.services.tele_service import BaseTeleGroupService
 from src.utils.log_util import logger
 
@@ -53,7 +54,7 @@ class BlumService(BaseTeleGroupService):
                 text="Continue",
                 clickable=True,
             )
-            .click_exists(10)
+            .click_exists(UI_TIMEOUT // 2)
         )
         if result:
             logger.info(f"[{self.serial_no}] Claim daily rewards successfully")
@@ -67,7 +68,7 @@ class BlumService(BaseTeleGroupService):
             textStartsWith="Claim ",
             clickable=True,
             packageName=self.package_name,
-        ).click_exists(20)
+        ).click_exists(UI_TIMEOUT)
         if claim_result:
             logger.info(f"[{self.serial_no}] Claim farming rewards successfully")
             time.sleep(10)
@@ -76,7 +77,7 @@ class BlumService(BaseTeleGroupService):
             text="Start farming",
             clickable=True,
             packageName=self.package_name,
-        ).click_exists(20)
+        ).click_exists(UI_TIMEOUT)
         if start_farming_result:
             logger.info(f"[{self.serial_no}] Start farming rewards successfully")
             time.sleep(10)

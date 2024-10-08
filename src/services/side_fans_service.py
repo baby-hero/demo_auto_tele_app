@@ -2,6 +2,7 @@ import time
 
 from uiautomator2 import Device
 
+from src.configs import UI_TIMEOUT
 from src.services.tele_service import BaseTeleGroupService
 from src.utils.log_util import logger
 
@@ -31,7 +32,7 @@ class SideFansService(BaseTeleGroupService):
         if super()._close_bot_menu():
             if self.device_ui(
                 text="Close anyway", index=1, packageName=self.package_name
-            ).click_exists(20):
+            ).click_exists(UI_TIMEOUT):
                 logger.info(
                     f"[{self.serial_no}] Close group: {self.group_name} successfully"
                 )
@@ -78,7 +79,7 @@ class SideFansService(BaseTeleGroupService):
         result = self.device_ui(
             text="GO",
             packageName=self.package_name,
-        ).click_exists(20)
+        ).click_exists(UI_TIMEOUT)
         if result:
             logger.info(f"[{self.serial_no}] Press GO successfully")
         else:
@@ -94,7 +95,7 @@ class SideFansService(BaseTeleGroupService):
             index=4,
             clickable=True,
             packageName=self.package_name,
-        ).click_exists(10):
+        ).click_exists(UI_TIMEOUT // 2):
             logger.error(
                 f"[{self.serial_no}] Claim button not found, maybe claimed already"
             )
@@ -109,7 +110,7 @@ class SideFansService(BaseTeleGroupService):
                 packageName=self.package_name,
             )
             .sibling(index=1)
-            .click_exists(10)
+            .click_exists(UI_TIMEOUT // 2)
         )
         if not close_btn_press:
             logger.error(f"[{self.serial_no}] Close button not found")
@@ -121,7 +122,7 @@ class SideFansService(BaseTeleGroupService):
     def _switch_tap_pass(self) -> bool:
         result = self.device_ui(
             description="Pass", packageName=self.package_name
-        ).click_exists(20)
+        ).click_exists(UI_TIMEOUT)
         if result:
             logger.info(f"[{self.serial_no}] Tap pass successfully")
         else:
@@ -134,10 +135,10 @@ class SideFansService(BaseTeleGroupService):
             packageName=self.package_name,
             instance=1,
         )
-        if not btn_go.exists(10):
+        if not btn_go.exists(UI_TIMEOUT // 2):
             return False
         task_name = btn_go.sibling(className="android.widget.TextView").get_text()
-        if not btn_go.click_exists(10):
+        if not btn_go.click_exists(UI_TIMEOUT // 2):
             logger.error(f"[{self.serial_no}] Press GO failed for task: {task_name}")
             return False
         else:

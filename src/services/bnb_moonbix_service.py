@@ -3,6 +3,7 @@ from datetime import datetime
 
 from uiautomator2 import Device
 
+from src.configs import UI_TIMEOUT
 from src.services.tele_service import BaseTeleGroupService
 from src.utils import adb_util, common_util
 from src.utils.log_util import logger
@@ -33,8 +34,8 @@ class BnbMoonBixService(BaseTeleGroupService):
     def daily_check_in(self) -> bool:
         logger.info(f"[{self.serial_no}] Daily check-in started...")
         node = self.device_ui(text="Your Daily Record", packageName=self.package_name)
-        if node.exists(20):
-            result = node.sibling(text="Continue").click_exists(10)
+        if node.exists(UI_TIMEOUT):
+            result = node.sibling(text="Continue").click_exists(UI_TIMEOUT // 2)
             if result:
                 logger.info(f"[{self.serial_no}] Daily check-in successfully")
             else:
@@ -42,7 +43,7 @@ class BnbMoonBixService(BaseTeleGroupService):
             return result
         return True
 
-    def run_app(self, device_to_balance_dict: dict) -> bool:
+    def run_app(self) -> bool:
         try:
             if not self._check_run_app():
                 logger.info(f"[{self.serial_no}] Ignore running app {self.group_name}")
@@ -51,7 +52,7 @@ class BnbMoonBixService(BaseTeleGroupService):
                 return False
             self.daily_check_in()
 
-            self.run_game_on_device(device_to_balance_dict)
+            self.run_game_on_device()
 
             self._set_pre_run_at()
             return self.end_group()
@@ -82,7 +83,7 @@ class BnbMoonBixService(BaseTeleGroupService):
         if self.device_ui(
             text="Security Verification",
             packageName=self.package_name,
-        ).exists(10):
+        ).exists(UI_TIMEOUT // 2):
             self._notify_to_tele("Wait for start game failed, Maybe have error")
             # logger.info("Take screenshot")
             # self._take_screenshot_to_check()
@@ -131,25 +132,28 @@ class BnbMoonBixService(BaseTeleGroupService):
         if btn_index:
             node = self.device_ui(
                 textStartsWith=btn_text,
-                index=btn_index,
                 clickable=True,
+                enabled=True,
                 packageName=self.package_name,
             )
         else:
             node = self.device_ui(
-                textStartsWith=btn_text, clickable=True, packageName=self.package_name
+                textStartsWith=btn_text,
+                clickable=True,
+                enabled=True,
+                packageName=self.package_name,
             )
-        if node.exists(20):
+        if node.exists(UI_TIMEOUT):
             node_text = node.get_text()
             logger.info(f"[{self.serial_no}] Clicking on button: {node_text}")
-            return node.click_exists(10)
+            return node.click_exists(UI_TIMEOUT // 2)
         logger.info(f"[{self.serial_no}] Not Found node for text '{btn_text}'")
         return False
 
     def _get_balance(self) -> int:
         try:
             node = self.device_ui(text="Available points")
-            if node.exists(10):
+            if node.exists(UI_TIMEOUT // 2):
                 txt_balance = self.device_ui(text="Available points").sibling(index=2)
                 balance_text = txt_balance.get_text()
                 logger.info(f"[{self.serial_no}] Balance: {balance_text}")
@@ -162,9 +166,9 @@ class BnbMoonBixService(BaseTeleGroupService):
             logger.error(f"[{self.serial_no}] Error getting balance,", e)
         return -1
 
-    def run_game_on_device(self, device_to_balance_dict: dict):
+    def run_game_on_device(self):
         logger.info(f"[{self.serial_no}] Run game")
-        self.device_to_balance_dict: dict = device_to_balance_dict
+        self.device_to_balance_dict: dict = {}
         played_flag = False
         retry = 3
         count = 0
