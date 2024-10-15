@@ -6,7 +6,9 @@ typer==0.7.0
 flake8==7.0.0
 uiautomator2==3.2.5
 numpy==2.1.1
-opencv-python==4.10.0.84
+opencv-python-headless==4.10.0.84
 adbutils==2.8.0
 python-dotenv==1.0.1
 types-requests==2.32.0.20240914
+PyYAML==6.0.2
+pydantic==2.9.2

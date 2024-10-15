@@ -1,0 +1,25 @@
+- device_name: "device_1"
+  is_blum: true
+  blum_group_id: 1
+  is_hamster_kombat: true
+  hamster_kombat_group_id: 2
+  is_bnb_moonbix: true
+  bnb_moonbix_group_id: 3
+  is_side_fans: true
+  side_fans_group_id: 4
+  notify_error_tele: true
+  notify_info_tele: false
+  notify_warning_tele: false
+
+- device_name: "device_2"
+  is_blum: true
+  blum_group_id: 1
+  is_hamster_kombat: true
+  hamster_kombat_group_id: 2
+  is_bnb_moonbix: true
+  bnb_moonbix_group_id: 3
+  is_side_fans: true
+  side_fans_group_id: 4
+  notify_error_tele: true
+  notify_info_tele: false
+  notify_warning_tele: false

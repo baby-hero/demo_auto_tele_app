@@ -153,4 +153,8 @@ spark/output/
 spark/.bsp/
 *.ipynb
 logs/
-images/
+**/image/tmp/**
+.yaml
+tmp_test.py
+temp.py
+device.yaml

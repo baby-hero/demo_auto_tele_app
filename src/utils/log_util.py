@@ -1,7 +1,7 @@
 import logging
 from logging.handlers import TimedRotatingFileHandler
 
-from src.configs import LOG_BACKUP_COUNT, LOG_FILE, LOG_LEVEL, LOGFORMAT
+from src.configs.common_config import LOG_BACKUP_COUNT, LOG_FILE, LOG_LEVEL, LOGFORMAT
 
 # ---------------------------------------------#
 # Set up formatter

@@ -1,9 +1,9 @@
 # Demo Telegram Automation Tool
 
 ## Features
-- SideFans: Daily check in
-- MoonBix: Daily check in, Game automation
-- Blum: Daily check in, farming
+- SideFans: Daily check in, rewards tasks, pass
+- MoonBix: Daily check in, Play game
+- Blum: Daily check in, farming, earn
 - HamsterKombat: Earn (Daily), Background (Buy new cards and upgrade cards)
 
 ## Prerequisites

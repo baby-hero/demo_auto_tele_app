@@ -3,7 +3,7 @@ from typing import List, Tuple
 from adbutils import AdbClient
 from adbutils._device import AdbDevice, WindowSize
 
-from src.configs import ADB_HOST, ADB_PORT
+from src.configs.common_config import ADB_HOST, ADB_PORT
 from src.utils.common_util import random_int
 
 

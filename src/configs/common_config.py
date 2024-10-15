@@ -26,3 +26,6 @@ IGNORE_HOUR_RUN_LIST = [
 ]
 
 UI_TIMEOUT = int(os.getenv("UI_TIMEOUT", "10"))
+
+
+IMAGE_FOLDER_PATH = os.getenv("IMAGE_FOLDER_PATH", "images/")
